@@ -1,0 +1,87 @@
+#!/bin/bash -e
+
+########################################################################
+#   racRepo    v 0.0.1
+version="0.0.1" 
+#	Uso:
+#	racRepo FILE REPO
+#	Lo script raccoglie i repository di nome REPO dalle utenze github 
+#	elencate nel file FILE secondo il formato:
+# 
+#	userSuServerLab userSuGitHub
+#
+#	i repo sono raccolti nella directory (non deve esistere) REPO....
+#
+#TO DO: sistemare questo commento	
+#	 
+
+. /lib/lsb/init-functions
+racRepoUsage() { 
+	echo " USO : racRepo FILE REPO ";
+	 }
+#TO DO: migliorare controlli sui parametri
+
+FILE=$1
+REPO=$2
+
+if [ -z $1 ]; then
+	racRepoUsage
+	exit 1
+fi
+
+case "$1" in
+"-v")
+	echo "racRepo v"$version
+	exit 0
+	;;
+
+*)	;;
+esac
+
+if [ -z $2 ]; then
+	racRepoUsage
+	exit 1
+fi
+
+########################################################################
+#
+# controllo e creazione directory per i repo
+
+repo=$REPO
+
+if [ -e "$repo" ]
+then
+  log_failure_msg "esiste una directory/file di nome "$repo 
+  exit 
+fi
+
+mkdir $repo 
+log_action_msg "directory $repo creata"
+
+########################################################################
+#
+# clonazione vari repo
+
+
+while read studente userGitHub 
+do 
+
+repoURL="https://github.com/"$userGitHub"/"$repo
+risultato=$(curl  --silent --head  "$repoURL" | grep HTTP)
+
+if [[ "$risultato" =~ "200" ]]; 
+then
+    log_success_msg $studente" ok"
+    git clone -q  $repoURL $repo"/"$studente  ;
+else
+    log_failure_msg $studente"  NON CONSEGNA"
+    mkdir $repo"/"$studente"_NON_CONSEGNA";
+    
+fi
+done < $FILE
+
+exit 0
+
+
+
+
